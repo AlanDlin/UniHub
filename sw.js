@@ -1,0 +1,1 @@
+const CACHE='unihub-v558';self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k))))])));self.addEventListener('fetch',()=>{});
