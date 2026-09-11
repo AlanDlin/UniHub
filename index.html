@@ -1,1 +1,125 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#111827"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="UniHub"><title>UniHub</title><link rel="manifest" href="/manifest.webmanifest?v=5.5.8"><link rel="icon" href="/logo.svg?v=5.5.8" type="image/svg+xml"><link rel="apple-touch-icon" href="/logo.svg?v=5.5.8"><style>html,body{margin:0;height:100%;font-family:system-ui,-apple-system,sans-serif;background:#f3f5f8;color:#101828}.load,.err{padding:28px;font-weight:650}.err b{display:block;margin-bottom:8px}.err small{display:block;margin-top:10px;color:#667085;white-space:pre-wrap;word-break:break-word}</style></head><body><div class="load">Cargando UniHub…</div><script>(async()=>{try{if(!('DecompressionStream'in window))throw new Error('Este navegador no soporta el cargador de UniHub.');const endpoint='https://nyodlyoffwqyoequxrdw.supabase.co/rest/v1/app_assets?version=eq.5.3.0&select=idx,data&order=idx.asc';const r=await fetch(endpoint,{cache:'no-store',headers:{apikey:'sb_publishable_tybczeLoU_O8gNr08NevEw_nsZFUvV2'}});if(!r.ok)throw new Error('No se pudo descargar UniHub Cloud ('+r.status+').');const rows=await r.json();if(!rows.length)throw new Error('Paquete de UniHub vacío.');const b64=rows.map(x=>x.data).join('');const raw=atob(b64),u=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)u[i]=raw.charCodeAt(i);const html=await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text();document.open();document.write(html);document.close()}catch(e){console.error(e);const msg=String(e&&e.message||e).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));document.body.innerHTML='<div class="err"><b>No se pudo cargar UniHub.</b><div>Recargá una vez. Si vuelve a pasar, mandame esta línea:</div><small>'+msg+'</small></div>'}})();</script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="UniHub">
+  <title>UniHub</title>
+  <link rel="manifest" href="/manifest.webmanifest?v=5.5.9">
+  <link rel="icon" href="/logo.svg?v=5.5.9" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/logo.svg?v=5.5.9">
+  <style>
+    html,body{margin:0;height:100%;font-family:system-ui,-apple-system,sans-serif;background:#f3f5f8;color:#101828}
+    .load,.err{padding:28px;font-weight:650}
+    .err b{display:block;margin-bottom:8px}
+    .err small{display:block;margin-top:10px;color:#667085;white-space:pre-wrap;word-break:break-word}
+  </style>
+</head>
+<body>
+  <div class="load">Cargando UniHub…</div>
+  <script>
+  (()=>{
+    const APP_VERSION='5.3.0';
+    const CACHE_NAME='unihub-cloud-v530';
+    const CACHE_KEY='/__unihub_cloud_5.3.0.html';
+    const CACHE_MAX_AGE_MS=6*60*60*1000;
+    const ENDPOINT=`https://nyodlyoffwqyoequxrdw.supabase.co/rest/v1/app_assets?version=eq.${APP_VERSION}&select=idx,data&order=idx.asc`;
+    const API_KEY='sb_publishable_tybczeLoU_O8gNr08NevEw_nsZFUvV2';
+
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    }
+
+    async function readCache(){
+      if(!('caches' in window))return null;
+      try{
+        const cache=await caches.open(CACHE_NAME);
+        const response=await cache.match(CACHE_KEY);
+        if(!response)return {cache,html:null,cachedAt:0};
+        return {
+          cache,
+          html:await response.text(),
+          cachedAt:Number(response.headers.get('X-UniHub-Cached-At')||0)
+        };
+      }catch(_){
+        return null;
+      }
+    }
+
+    async function downloadApp(){
+      if(!('DecompressionStream' in window)){
+        throw new Error('Este navegador no soporta el cargador de UniHub.');
+      }
+
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),20000);
+      let response;
+      try{
+        response=await fetch(ENDPOINT,{
+          cache:'default',
+          signal:controller.signal,
+          headers:{apikey:API_KEY}
+        });
+      }finally{
+        clearTimeout(timeout);
+      }
+
+      if(!response.ok)throw new Error('No se pudo descargar UniHub Cloud ('+response.status+').');
+      const rows=await response.json();
+      if(!rows.length)throw new Error('Paquete de UniHub vacío.');
+
+      const b64=rows.map(x=>x.data).join('');
+      const raw=atob(b64);
+      const bytes=new Uint8Array(raw.length);
+      for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+
+      return new Response(
+        new Blob([bytes],{type:'application/gzip'}).stream().pipeThrough(new DecompressionStream('gzip'))
+      ).text();
+    }
+
+    async function saveCache(cache,html){
+      if(!cache)return;
+      try{
+        await cache.put(CACHE_KEY,new Response(html,{
+          headers:{
+            'Content-Type':'text/html; charset=utf-8',
+            'X-UniHub-Cached-At':String(Date.now())
+          }
+        }));
+      }catch(_){}
+    }
+
+    async function boot(){
+      try{
+        const cached=await readCache();
+        const fresh=cached&&cached.html&&(Date.now()-cached.cachedAt)<CACHE_MAX_AGE_MS;
+        let html=fresh?cached.html:null;
+
+        if(!html){
+          try{
+            html=await downloadApp();
+            await saveCache(cached&&cached.cache,html);
+          }catch(downloadError){
+            if(cached&&cached.html)html=cached.html;
+            else throw downloadError;
+          }
+        }
+
+        document.open();
+        document.write(html);
+        document.close();
+      }catch(e){
+        console.error(e);
+        const msg=String(e&&e.message||e).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+        document.body.innerHTML='<div class="err"><b>No se pudo cargar UniHub.</b><div>Recargá una vez. Si vuelve a pasar, mandame esta línea:</div><small>'+msg+'</small></div>';
+      }
+    }
+
+    boot();
+  })();
+  </script>
+</body>
+</html>
