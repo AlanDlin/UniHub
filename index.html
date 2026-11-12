@@ -104,6 +104,16 @@
       return html;
     }
 
+    function addSymbolDock(html){
+      const anchor="q('#pfNewFile').onclick=()=>newFile();";
+      if(!html.includes(anchor)){
+        console.warn('UniHub: no se pudo insertar el menú de símbolos');
+        return html;
+      }
+      html=html.replace(anchor,anchor+"\n(function(){\n  const view=q('#view-pyforge');\n  if(!view||q('#pfSymbolDock'))return;\n  const dock=document.createElement('div');\n  dock.id='pfSymbolDock';\n  dock.className='pfSymbolDock';\n  const toggle=document.createElement('button');\n  toggle.type='button';\n  toggle.className='pfSymbolToggle';\n  toggle.textContent='<>';\n  toggle.title='Símbolos para Python';\n  toggle.setAttribute('aria-label','Abrir símbolos de Python');\n  toggle.setAttribute('aria-expanded','false');\n  const menu=document.createElement('div');\n  menu.className='pfSymbolMenu';\n  menu.hidden=true;\n  const symbols=['>','<','>=','<=','==','!=','=','%','//','**','+','-','*','/',':','(',')','[',']','{','}'];\n  function insertSymbol(symbol){\n    if(!state.active){toast('Abrí un archivo para insertar símbolos.');return;}\n    if(editor?.__native){\n      const ta=window.__pfNative;\n      if(!ta)return;\n      const start=ta.selectionStart,end=ta.selectionEnd;\n      ta.setRangeText(symbol,start,end,'end');\n      ta.dispatchEvent(new Event('input',{bubbles:true}));\n      ta.focus();\n    }else if(editor&&editor.getModel()){\n      const selection=editor.getSelection();\n      if(!selection)return;\n      editor.executeEdits('pf-symbol-menu',[{range:selection,text:symbol,forceMoveMarkers:true}]);\n      editor.focus();\n    }else{\n      toast('El editor todavía no está listo.');\n    }\n  }\n  for(const symbol of symbols){\n    const b=document.createElement('button');\n    b.type='button';\n    b.textContent=symbol;\n    b.title='Insertar '+symbol;\n    b.setAttribute('aria-label','Insertar '+symbol);\n    b.addEventListener('mousedown',e=>e.preventDefault());\n    b.onclick=()=>insertSymbol(symbol);\n    menu.appendChild(b);\n  }\n  toggle.onclick=e=>{\n    e.stopPropagation();\n    menu.hidden=!menu.hidden;\n    toggle.setAttribute('aria-expanded',String(!menu.hidden));\n  };\n  document.addEventListener('pointerdown',e=>{\n    if(!dock.contains(e.target)){menu.hidden=true;toggle.setAttribute('aria-expanded','false');}\n  });\n  dock.append(menu,toggle);\n  view.appendChild(dock);\n})();\n");
+      return html.replace('</head>',"<style>\n#view-pyforge .pfSymbolDock{position:fixed;right:12px;top:49%;transform:translateY(-50%);z-index:2100;display:flex;align-items:center;gap:6px}\n#view-pyforge .pfSymbolToggle{width:37px;height:43px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--text);font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 5px 16px rgba(0,0,0,.25)}\n#view-pyforge .pfSymbolToggle:hover,#view-pyforge .pfSymbolToggle[aria-expanded=\"true\"]{border-color:var(--accent);background:var(--accent);color:#fff}\n#view-pyforge .pfSymbolMenu{position:absolute;right:45px;top:50%;transform:translateY(-50%);max-height:min(67vh,450px);width:58px;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:3px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 25px rgba(0,0,0,.32)}\n#view-pyforge .pfSymbolMenu[hidden]{display:none}\n#view-pyforge .pfSymbolMenu button{flex:0 0 auto;height:34px;width:100%;padding:0;border:1px solid var(--line);border-radius:6px;color:var(--text);background:var(--panel2);font:600 14px ui-monospace,SFMono-Regular,Menlo,monospace;cursor:pointer}\n#view-pyforge .pfSymbolMenu button:hover{background:var(--accent);color:#fff}\n</style></head>");
+    }
+
     async function boot(){
       try{
         const cached=await readCache();
@@ -121,6 +131,7 @@
         }
 
         html=addExerciseShortcut(html);
+        html=addSymbolDock(html);
         document.open();
         document.write(html);
         document.close();
