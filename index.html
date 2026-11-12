@@ -92,6 +92,14 @@
       }catch(_){}
     }
 
+    function addExerciseShortcut(html){
+      const anchor="root.appendChild(r)}};draw('',0)}";
+      if(html.includes('pfNextExercise')) return html;
+      if(!html.includes(anchor)) { console.warn('UniHub: no se encontró el punto de inserción para ejercicios'); return html; }
+      html=html.replace(anchor, "\nconst match = base(p).match(/^ejercicio\\s*(\\d+)\\.py$/i);\nif (match) {\n  const plus = document.createElement('button');\n  plus.type = 'button';\n  plus.className = 'pfNextExercise';\n  plus.textContent = '+';\n  plus.title = 'Crear el siguiente ejercicio en esta carpeta';\n  plus.setAttribute('aria-label', 'Crear siguiente ejercicio');\n  plus.onclick = e => {\n    e.preventDefault();\n    e.stopPropagation();\n    const folder = dir(p);\n    const names = Object.keys(state.files).filter(path => dir(path) === folder).map(path => base(path));\n    let n = Number(match[1]) + 1;\n    while (names.some(name => { const matchExisting = name.match(/^ejercicio\\s*(\\d+)\\.py$/i); return matchExisting && Number(matchExisting[1]) === n; })) n++;\n    const target = norm((folder ? folder + '/' : '') + 'Ejercicio ' + n + '.py');\n    if (target in state.files) return;\n    state.files[target] = '';\n    if (!state.open.includes(target)) state.open.push(target);\n    state.active = target;\n    if (folder && !state.expanded.includes(folder)) state.expanded.push(folder);\n    save();\n    renderTree();\n    renderTabs();\n    openFile(target);\n  };\n  r.appendChild(plus);\n}\n" + anchor);
+      return html.replace('</head>', "<style>#view-pyforge .pfNextExercise{margin-left:auto;flex:0 0 24px;width:24px;height:24px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:var(--text);font-size:18px;font-weight:700;line-height:20px;cursor:pointer;display:grid;place-items:center;padding:0}#view-pyforge .pfNextExercise:hover{background:var(--accent);color:white;border-color:var(--accent)}</style></head>");
+    }
+
     async function boot(){
       try{
         const cached=await readCache();
@@ -108,6 +116,7 @@
           }
         }
 
+        html=addExerciseShortcut(html);
         document.open();
         document.write(html);
         document.close();
